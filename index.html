@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LinkLens – check a link before you click</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF1EC;--surface:#FBFCFA;--ink:#14231F;--mute:#5B6B66;--line:#CBD5CF;--safe:#1B7F53;--warn:#B87503;--bad:#C22F2A;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101816;--surface:#172320;--ink:#E6EFEA;--mute:#9AAAA4;--line:#2B3B36;--safe:#4CC38A;--warn:#E0A93A;--bad:#FF6B62;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101816;--surface:#172320;--ink:#E6EFEA;--mute:#9AAAA4;--line:#2B3B36;--safe:#4CC38A;--warn:#E0A93A;--bad:#FF6B62;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 "IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif}
+[dir=rtl] body,[dir=rtl] button,[dir=rtl] input{font-family:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 20px 64px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font:800 20px "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.01em}
+.langs button{background:none;border:1px solid var(--line);color:var(--ink);padding:4px 10px;cursor:pointer;font:inherit;font-size:14px}
+.langs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.langs button:first-child{border-radius:6px 0 0 6px}.langs button:last-child{border-radius:0 6px 6px 0}
+[dir=rtl] .langs button:first-child{border-radius:0 6px 6px 0}[dir=rtl] .langs button:last-child{border-radius:6px 0 0 6px}
+h1{font:800 clamp(34px,7vw,56px)/1.02 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.025em;margin:44px 0 12px;max-width:14ch}
+[dir=rtl] h1{letter-spacing:0;line-height:1.25}
+.sub{color:var(--mute);max-width:52ch;margin:0 0 24px}
+.row{display:flex;gap:8px}
+input{flex:1;min-width:0;padding:14px;font:500 16px "IBM Plex Sans",monospace;background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:8px;direction:ltr}
+.go{padding:0 22px;font:600 16px "IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif;background:var(--ink);color:var(--bg);border:0;border-radius:8px;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+.ex{margin:12px 0 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--mute);font-size:14px}
+.ex button{background:none;border:1px dashed var(--mute);color:var(--ink);border-radius:999px;padding:3px 12px;cursor:pointer;font:500 13px "IBM Plex Sans",monospace;direction:ltr}
+#out{margin-top:32px}
+.anat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;direction:ltr;text-align:left;overflow-x:auto;font:500 clamp(15px,3.6vw,22px)/1.5 "IBM Plex Sans",monospace;white-space:nowrap}
+.anat .p{color:var(--mute)}.anat .s{color:var(--warn);text-decoration:underline wavy;text-underline-offset:5px}
+.anat .d{font-weight:700;background:color-mix(in srgb,var(--v) 18%,transparent);box-shadow:0 3px 0 var(--v);padding:0 2px}
+.cap{font-size:13px;color:var(--mute);margin:8px 2px 0}
+.res{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;margin:26px 0 8px}
+.score{font:800 72px/1 "Bricolage Grotesque",sans-serif;color:var(--v)}
+.score small{font-size:20px;color:var(--mute);font-weight:600}
+.verdict{font:800 26px "Bricolage Grotesque",system-ui,sans-serif;color:var(--v);margin:0}
+.meter{height:10px;background:linear-gradient(90deg,var(--safe) 0 30%,var(--warn) 30% 60%,var(--bad) 60% 100%);border-radius:5px;position:relative;margin-top:10px;opacity:.9}
+.meter i{position:absolute;top:-6px;width:4px;height:22px;background:var(--ink);border-radius:2px;transform:translateX(-50%);transition:left .5s}
+.why{font-size:17px;margin:14px 0 22px;max-width:60ch}
+ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+li{display:flex;justify-content:space-between;gap:14px;background:var(--surface);border:1px solid var(--line);border-inline-start:5px solid var(--bad);padding:12px 14px;border-radius:6px}
+li.ok{border-inline-start-color:var(--safe)}
+li b{white-space:nowrap;color:var(--bad)}li.ok b{color:var(--safe)}
+h2{font:700 16px "Bricolage Grotesque",sans-serif;margin:0 0 10px}
+.share{margin-top:22px}
+.share button{background:none;border:2px solid var(--ink);color:var(--ink);border-radius:8px;padding:9px 16px;font:600 15px "IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif;cursor:pointer}
+textarea{display:block;width:100%;margin-top:10px;min-height:76px;padding:10px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;font:inherit}
+.err{color:var(--bad);font-weight:500}
+footer{margin-top:48px;color:var(--mute);font-size:13px;border-top:1px solid var(--line);padding-top:14px;max-width:62ch}
+@media (max-width:520px){.row{flex-direction:column}.go{padding:13px}.res{grid-template-columns:1fr}}
+input[type=checkbox]{flex:none;width:18px;height:18px;padding:0;border:0;accent-color:var(--ink);margin:0}
+.opt{display:flex;gap:10px;align-items:center;margin:14px 0 0;color:var(--mute);font-size:14px;cursor:pointer}
+.badge{margin:10px 0 0;font-size:13px;color:var(--mute)}
+.badge b{color:var(--ink)}
+.aitag{font-size:13px;color:var(--mute);margin:-12px 0 14px}
+.think{display:flex;gap:16px;align-items:center;margin:28px 0;padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.think small{display:block;color:var(--mute);font-size:14px;margin-top:2px}
+.spin{width:24px;height:24px;border:3px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:spin .9s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none;border-top-color:var(--warn)}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}
+.chips span{border:1px solid var(--bad);color:var(--bad);border-radius:999px;padding:2px 10px;font-size:13px}
+ol.hops{margin:0 0 20px;padding-inline-start:22px;display:grid;gap:4px;font:500 13px "IBM Plex Sans",monospace;color:var(--mute);direction:ltr;text-align:left;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><span class="brand">LinkLens</span>
+<div class="langs" role="group" aria-label="Language"><button data-l="en">EN</button><button data-l="fr">FR</button><button data-l="ar">عربي</button></div></div>
+<h1 id="h1"></h1>
+<p class="sub" id="sub"></p>
+<div class="row"><input id="u" type="text" inputmode="url" autocomplete="off" spellcheck="false" aria-label="URL"><button class="go" id="go"></button></div>
+<label class="opt"><input type="checkbox" id="deep"><span id="deepl"></span></label>
+<div class="ex"><span id="exl"></span><span id="exs"></span></div>
+<div class="badge" id="badge"></div>
+<div id="out" aria-live="polite"></div>
+<footer id="foot"></footer>
+</main>
+<script>
+"use strict";
+// ---------- i18n ----------
+const T={
+en:{h1:"Read the link before you click it.",sub:"Paste a link or a whole message. We break the address apart, show where it really goes, and explain every warning sign.",ph:"https://…",go:"Check link",ex:"Try:",real:"The real domain is the underlined part.",why:"Why this score",ok:"Low risk",sus:"Suspicious",bad:"Dangerous",
+exp:{ok:"No major warning signs. Low risk does not mean guaranteed safe: if you did not expect this link, do not enter a password.",sus:"Some warning signs. Do not enter passwords or payment details. Open the official site by typing its address yourself.",bad:"This link shows several classic phishing tricks. Do not open it and never enter a password."},
+share:"Create a warning to share",msg:(v,u)=>"⚠️ Careful: this link looks "+v.toLowerCase()+": "+u+" . Do not open it or type any password.",bad_url:"This does not look like a valid link. Paste a full address such as https://example.com",
+foot:"LinkLens gives a risk score from transparent rules, not a guarantee. Links are analyzed in your browser and never stored. Only inspect links; never visit suspicious ones.",
+f:{ip:()=>"Uses a raw IP address instead of a domain name",at:()=>"Contains an @ symbol that hides the real destination",http:()=>"Not using HTTPS",long:()=>"Unusually long address",subs:()=>"Many subdomains stacked together",brandsub:(b,d)=>"Puts “"+b+"” in front, but the real domain is "+d,look:(b)=>"Imitates "+b+" but is not "+b,tld:(t)=>"."+t+" is often used in scams",kw:(k)=>"Pressure words: "+k,puny:()=>"Uses disguised international characters",hyph:()=>"Many hyphens in the domain name",short:()=>"URL shortener hides the final destination",legit:(b)=>"Matches the official "+b+" domain"}},
+fr:{h1:"Lisez le lien avant de cliquer.",sub:"Collez un lien ou un message entier. Nous décomposons l’adresse, montrons où elle mène vraiment et expliquons chaque signal d’alerte.",ph:"https://…",go:"Vérifier le lien",ex:"Essayez :",real:"Le vrai domaine est la partie soulignée.",why:"Pourquoi ce score",ok:"Risque faible",sus:"Suspect",bad:"Dangereux",
+exp:{ok:"Aucun signal majeur. Risque faible ne veut pas dire sûr à 100 % : si vous n’attendiez pas ce lien, ne saisissez aucun mot de passe.",sus:"Quelques signaux d’alerte. Ne saisissez ni mot de passe ni données de paiement. Ouvrez le site officiel en tapant son adresse vous-même.",bad:"Ce lien cumule des astuces classiques de phishing. Ne l’ouvrez pas et ne saisissez jamais de mot de passe."},
+share:"Créer un message d’alerte",msg:(v,u)=>"⚠️ Attention : ce lien semble "+v.toLowerCase()+" : "+u+" . Ne l’ouvrez pas et ne saisissez aucun mot de passe.",bad_url:"Ce n’est pas un lien valide. Collez une adresse complète comme https://example.com",
+foot:"LinkLens donne un score de risque basé sur des règles transparentes, pas une garantie. Les liens sont analysés dans votre navigateur et jamais stockés. Ne visitez jamais un lien suspect.",
+f:{ip:()=>"Utilise une adresse IP au lieu d’un nom de domaine",at:()=>"Contient un @ qui cache la vraie destination",http:()=>"N’utilise pas HTTPS",long:()=>"Adresse anormalement longue",subs:()=>"Beaucoup de sous-domaines empilés",brandsub:(b,d)=>"Met « "+b+" » devant, mais le vrai domaine est "+d,look:(b)=>"Imite "+b+" sans être "+b,tld:(t)=>"."+t+" est souvent utilisé pour des arnaques",kw:(k)=>"Mots de pression : "+k,puny:()=>"Utilise des caractères internationaux déguisés",hyph:()=>"Beaucoup de tirets dans le domaine",short:()=>"Un raccourcisseur cache la destination finale",legit:(b)=>"Correspond au domaine officiel de "+b}},
+ar:{h1:"اقرأ الرابط قبل أن تضغط عليه.",sub:"الصق رابطاً أو رسالة كاملة. نفكّك العنوان، ونُظهر وجهته الحقيقية، ونشرح كل علامة تحذير.",ph:"https://…",go:"افحص الرابط",ex:"جرّب:",real:"النطاق الحقيقي هو الجزء المسطّر.",why:"سبب هذه النتيجة",ok:"خطر منخفض",sus:"مشبوه",bad:"خطير",
+exp:{ok:"لا توجد علامات تحذير كبيرة. الخطر المنخفض لا يعني الأمان المضمون: إن لم تكن تتوقع هذا الرابط فلا تُدخل أي كلمة مرور.",sus:"توجد بعض علامات التحذير. لا تُدخل كلمات المرور أو بيانات الدفع. افتح الموقع الرسمي بكتابة عنوانه بنفسك.",bad:"يحتوي هذا الرابط على حيل تصيّد معروفة. لا تفتحه ولا تُدخل أي كلمة مرور."},
+share:"أنشئ رسالة تحذير للمشاركة",msg:(v,u)=>"⚠️ انتبه: هذا الرابط يبدو "+v+": "+u+" . لا تفتحه ولا تكتب أي كلمة مرور.",bad_url:"هذا ليس رابطاً صالحاً. الصق عنواناً كاملاً مثل https://example.com",
+foot:"يقدّم LinkLens درجة خطر مبنية على قواعد شفافة، وليست ضماناً. تُحلَّل الروابط داخل متصفحك ولا تُخزَّن. لا تزر الروابط المشبوهة أبداً.",
+f:{ip:()=>"يستخدم عنوان IP بدل اسم نطاق",at:()=>"يحتوي على رمز @ يُخفي الوجهة الحقيقية",http:()=>"لا يستخدم HTTPS",long:()=>"عنوان طويل بشكل غير عادي",subs:()=>"نطاقات فرعية كثيرة متراكمة",brandsub:(b,d)=>"يضع «"+b+"» في البداية لكن النطاق الحقيقي هو "+d,look:(b)=>"ينتحل "+b+" وهو ليس "+b,tld:(t)=>"."+t+" يُستخدم كثيراً في الاحتيال",kw:(k)=>"كلمات ضغط: "+k,puny:()=>"يستخدم أحرفاً دولية مموّهة",hyph:()=>"شرطات كثيرة في اسم النطاق",short:()=>"مُقصِّر الروابط يُخفي الوجهة النهائية",legit:(b)=>"يطابق النطاق الرسمي لـ "+b}}
+};
+Object.assign(T.en,{deep:"Also follow redirects (this contacts the link)",aiwait:"AI is reading the link…",aiby:"Explained by",aioff:"AI offline: showing the built-in explanation",hops:"Redirect path",ph:"Paste a link or a whole message",
+ tac:{urgency:"urgency",impersonation:"impersonation",prize:"fake prize",payment:"payment request",credentials:"asks for credentials",threat:"threats"},
+ bon:(m,l)=>"Open-source AI running on this computer: <b>"+m+"</b> ("+l+")",boff:"AI model not running. Start Ollama to enable the AI explanation (rules still work).",
+ foot:"LinkLens gives a risk score from transparent rules, not a guarantee. Everything runs on your own computer: the AI model is open-source and local, and nothing is stored. By default the link itself is never contacted. Never visit suspicious links."});
+Object.assign(T.en.f,{new:d=>"Domain registered only "+d+" day(s) ago",young:d=>"Young domain: registered "+d+" days ago",hops:n=>"Redirects "+n+" times before the final page",diff:h=>"Ends on a different domain: "+h,ai:l=>"AI found pressure tactics in the message: "+l});
+Object.assign(T.fr,{deep:"Suivre aussi les redirections (contacte le lien)",aiwait:"L’IA lit le lien…",aiby:"Expliqué par",aioff:"IA hors ligne : explication intégrée affichée",hops:"Chemin des redirections",ph:"Collez un lien ou un message entier",
+ tac:{urgency:"urgence",impersonation:"usurpation d’identité",prize:"faux gain",payment:"demande de paiement",credentials:"demande d’identifiants",threat:"menaces"},
+ bon:(m,l)=>"IA open source exécutée sur cet ordinateur : <b>"+m+"</b> ("+l+")",boff:"Modèle IA non lancé. Démarrez Ollama pour activer l’explication IA (les règles fonctionnent toujours).",
+ foot:"LinkLens donne un score de risque basé sur des règles transparentes, pas une garantie. Tout s’exécute sur votre ordinateur : le modèle IA est open source et local, et rien n’est stocké. Par défaut, le lien lui-même n’est jamais contacté. Ne visitez jamais un lien suspect."});
+Object.assign(T.fr.f,{new:d=>"Domaine enregistré il y a seulement "+d+" jour(s)",young:d=>"Domaine récent : enregistré il y a "+d+" jours",hops:n=>"Redirigé "+n+" fois avant la page finale",diff:h=>"Aboutit sur un autre domaine : "+h,ai:l=>"L’IA a repéré des techniques de pression dans le message : "+l});
+Object.assign(T.ar,{deep:"تتبّع إعادة التوجيه أيضاً (يتصل بالرابط)",aiwait:"الذكاء الاصطناعي يقرأ الرابط…",aiby:"الشرح من",aioff:"الذكاء الاصطناعي غير متصل: يُعرض الشرح المدمج",hops:"مسار إعادة التوجيه",ph:"الصق رابطاً أو رسالة كاملة",
+ tac:{urgency:"استعجال",impersonation:"انتحال هوية",prize:"جائزة وهمية",payment:"طلب دفع",credentials:"طلب بيانات الدخول",threat:"تهديد"},
+ bon:(m,l)=>"ذكاء اصطناعي مفتوح المصدر يعمل على هذا الحاسوب: <b>"+m+"</b> ("+l+")",boff:"نموذج الذكاء الاصطناعي لا يعمل. شغّل Ollama لتفعيل الشرح الذكي (القواعد تعمل دائماً).",
+ foot:"يقدّم LinkLens درجة خطر مبنية على قواعد شفافة، وليست ضماناً. كل شيء يعمل على حاسوبك: نموذج الذكاء الاصطناعي مفتوح المصدر ومحلي، ولا يُخزَّن شيء. افتراضياً لا يتم الاتصال بالرابط نفسه. لا تزر الروابط المشبوهة أبداً."});
+Object.assign(T.ar.f,{new:d=>"سُجّل النطاق قبل "+d+" يوم فقط",young:d=>"نطاق حديث: سُجّل قبل "+d+" يوماً",hops:n=>"يُعاد توجيهه "+n+" مرات قبل الصفحة النهائية",diff:h=>"ينتهي في نطاق مختلف: "+h,ai:l=>"رصد الذكاء الاصطناعي أساليب ضغط في الرسالة: "+l});
+Object.assign(T.en,{aiwait:"The AI is analyzing this link…",aihint:"It checks the evidence, then writes its rating and explanation. The first check can take a few seconds.",aiby:"Rated and explained by",ev:"Evidence the AI used",guard:"Adjusted by safety checks",aioff:"AI offline: showing the rule-based score and built-in explanation"});
+Object.assign(T.fr,{aiwait:"L’IA analyse ce lien…",aihint:"Elle examine les indices, puis écrit sa note et son explication. La première vérification peut prendre quelques secondes.",aiby:"Noté et expliqué par",ev:"Indices utilisés par l’IA",guard:"Ajusté par les contrôles de sécurité",aioff:"IA hors ligne : score des règles et explication intégrée affichés"});
+Object.assign(T.ar,{aiwait:"الذكاء الاصطناعي يحلّل هذا الرابط…",aihint:"يفحص الأدلة ثم يكتب تقييمه وشرحه. قد يستغرق الفحص الأول بضع ثوانٍ.",aiby:"التقييم والشرح من",ev:"الأدلة التي استخدمها الذكاء الاصطناعي",guard:"عُدّل بواسطة فحوصات الأمان",aioff:"الذكاء الاصطناعي غير متصل: تُعرض درجة القواعد والشرح المدمج"});
+// ---------- rules engine (mirror of the backend scoring table) ----------
+const BRANDS=["paypal","google","microsoft","apple","amazon","facebook","instagram","whatsapp","netflix","linkedin","twitter","dhl","fedex","binance","spotify","outlook","office365","icloud","youtube","tiktok","attijariwafa","bankofafrica","cih","inwi","orange","maroctelecom","cashplus","barid","cnss","dgi","cdgcapital","wafacash"];
+const MULTI=["co.uk","com.ma","co.ma","org.ma","gov.ma","ac.ma","com.au","co.za","com.br"];
+const OKTLD=["com","net","org","ma","fr","co.uk","com.ma","co.ma","gov.ma","org.ma"];
+const BADTLD=["xyz","top","click","icu","live","shop","work","tk","ml","cf","gq","buzz","rest","cyou"];
+const KW=["login","signin","verify","secure","account","update","suspended","urgent","confirm","wallet","password","billing","support","unlock","bonus","gift"];
+const SHORT=["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd","cutt.ly","rb.gy","shorturl.at"];
+const norm=s=>s.replace(/rn/g,"m").replace(/vv/g,"w").replace(/0/g,"o").replace(/[1|]/g,"l").replace(/3/g,"e").replace(/4/g,"a").replace(/5/g,"s").replace(/7/g,"t").replace(/\$/g,"s");
+function lev(a,b){const m=[...Array(a.length+1)].map((_,i)=>[i]);for(let j=1;j<=b.length;j++)m[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
+function tokenMatch(tok,b){tok=norm(tok);if(tok===b)return true;if(b.length<5)return false;
+  if(tok.startsWith(b)||tok.endsWith(b)){const rem=tok.startsWith(b)?tok.slice(b.length):tok.slice(0,tok.length-b.length);return rem.length<=3||KW.some(k=>rem.includes(k))}
+  return lev(tok,b)<=1}
+function analyze(raw){
+  raw=raw.trim();const m=raw.match(/(?:https?:\/\/|www\.)[^\s<>"']+|[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[^\s]*)?/i);
+  if(!m)return null;let s=m[0].replace(/[).,;]+$/,"");if(!/^[a-z]+:\/\//i.test(s))s="http"+(/^www\./i.test(raw)?"s":"")+"://"+s;
+  let u;try{u=new URL(s)}catch(e){return null}
+  const host=u.hostname.toLowerCase(),isIP=/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||host.includes(":"),parts=host.split(".");
+  let tld=parts[parts.length-1];const two=parts.slice(-2).join(".");if(MULTI.includes(two))tld=two;
+  const tl=tld.split(".").length,label=isIP?host:(parts[parts.length-tl-1]||host),sub=isIP?"":parts.slice(0,Math.max(0,parts.length-tl-1)).join(".");
+  const reg=isIP?host:label+"."+tld,flags=[];const add=(k,pts,...a)=>flags.push({k,pts,a});
+  const full=(u.username?u.username+"@":"")+u.host+u.pathname+u.search;
+  // brand logic
+  let legit=null;
+  for(const b of BRANDS){if(label===b&&OKTLD.includes(tld)&&!sub.split(".").some(x=>tokenMatch(x,b)&&x!==b&&x!=="www")){legit=b;break}}
+  if(!legit&&!isIP){
+    let hit=null;for(const b of BRANDS){if(label.split("-").some(t=>tokenMatch(t,b))||(label.length>5&&tokenMatch(label.replace(/-/g,""),b))){hit=b;break}}
+    if(hit)add("look",45,hit);
+    const sb=BRANDS.find(b=>sub.split(/[.-]/).some(t=>t&&tokenMatch(t,b)));
+    if(sb&&sb!==hit)add("brandsub",45,sb,reg);
+  }
+  if(isIP)add("ip",30);
+  if(/@/.test(s.replace(/^[a-z]+:\/\//i,"").split("/")[0]))add("at",25);
+  if(u.protocol!=="https:")add("http",10);
+  if(s.length>75)add("long",10);
+  if(!isIP&&sub.split(".").filter(Boolean).length>=3)add("subs",10);
+  if(host.includes("xn--"))add("puny",25);
+  if(!isIP&&(label.match(/-/g)||[]).length>=2)add("hyph",8);
+  if(BADTLD.includes(tld))add("tld",10,tld);
+  if(SHORT.includes(reg))add("short",15);
+  if(!legit){const k=KW.filter(w=>(host+u.pathname).toLowerCase().includes(w));if(k.length)add("kw",Math.min(15,k.length*5),k.slice(0,3).join(", "))}
+  let score=Math.min(100,flags.reduce((a,f)=>a+f.pts,0));
+  if(legit)flags.push({k:"legit",pts:0,a:[legit],ok:1});
+  return{rest:raw.replace(m[0],"").trim(),url:s,host,sub,label,tld,path:u.pathname+u.search+u.hash,proto:u.protocol+"//",score,verdict:score>60?"bad":score>30?"sus":"ok",flags,isIP,reg};
+}
+// ---------- UI ----------
+let lang="en",last=null;const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const EX=["https://github.com","Attijariwafa: votre compte est suspendu, verifiez maintenant https://attijar1wafa-secure.top/login","https://paypa1-secure-login.xyz","https://paypal.com.account-verify.top","http://192.168.4.7/attijariwafa/login"];
+function setLang(l){lang=l;const t=T[l];document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr";
+  $("h1").textContent=t.h1;$("sub").textContent=t.sub;$("u").placeholder=t.ph;$("go").textContent=t.go;$("exl").textContent=t.ex;$("foot").textContent=t.foot;$("deepl").textContent=t.deep;setBadge();
+  document.querySelectorAll(".langs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===l));
+  $("exs").innerHTML=EX.map(e=>`<button type="button">${esc(e.replace(/^https?:\/\//,"").slice(0,42))}</button>`).join("");
+  document.querySelectorAll("#exs button").forEach((b,i)=>b.onclick=()=>{$("u").value=EX[i];run()});
+  if(last)rerun(last)}
+const engFlags=r=>r.flags.map(f=>T.en.f[f.k](...f.a));
+function flagList(r,t){const L=r.flags.map(f=>({text:t.f[f.k](...f.a),ok:f.ok}));(r.enr||[]).forEach(f=>L.push({text:t.f[f.k](...f.a)}));return L}
+function anatomy(r,t){return `<div class="anat"><span class="p">${esc(r.proto)}</span>`+(r.sub?`<span class="s">${esc(r.sub)}.</span>`:"")+`<span class="d">${esc(r.isIP?r.host:r.label+"."+r.tld)}</span><span class="p">${esc(r.path.length>38?r.path.slice(0,38)+"…":(r.path==="/"?"":r.path))}</span></div><p class="cap">${esc(t.real)}</p>`}
+function render(r){const t=T[lang],ai=r.ai||{state:"wait"};
+  if(ai.state==="wait"){$("out").innerHTML=`<div>${anatomy(r,t)}<div class="think" role="status"><span class="spin"></span><div><b>${esc(t.aiwait)}</b><small>${esc(t.aihint)}</small></div></div></div>`;return}
+  const rules=Math.min(100,r.base+(r.enr||[]).reduce((a,f)=>a+f.pts,0));
+  r.score=ai.state==="done"?ai.score:rules;
+  r.verdict=r.score>60?"bad":r.score>30?"sus":"ok";
+  const col=r.verdict==="bad"?"var(--bad)":r.verdict==="sus"?"var(--warn)":"var(--safe)",L=flagList(r,t);
+  const fl=L.map(f=>`<li class="${f.ok?"ok":""}"><span>${esc(f.text)}</span>${f.ok?"<b>✓</b>":""}</li>`).join("");
+  const vn=t[r.verdict],why=ai.state==="done"?ai.explanation:t.exp[r.verdict];
+  const tag=ai.state==="done"?`<p class="aitag">✦ ${esc(t.aiby)} ${esc(ai.model)}${ai.guarded?" · "+esc(t.guard):""}</p>`:`<p class="aitag">${esc(t.aioff)}</p>`;
+  const chips=ai.state==="done"&&ai.tactics.length?`<div class="chips">${ai.tactics.map(c=>`<span>${esc(t.tac[c]||c)}</span>`).join("")}</div>`:"";
+  const hops=(r.hops||[]).length>1?`<h2>${esc(t.hops)}</h2><ol class="hops">${r.hops.map(x=>`<li style="all:unset;display:list-item">${esc(x.length>90?x.slice(0,90)+"…":x)}</li>`).join("")}</ol>`:"";
+  $("out").innerHTML=`<div style="--v:${col}">${anatomy(r,t)}
+  <div class="res"><div class="score">${r.score}<small>/100</small></div><div><p class="verdict">${esc(vn)}</p><div class="meter"><i style="left:${r.score}%"></i></div></div></div>
+  <p class="why">${esc(why)}</p>${tag}${chips}${hops}${fl?`<h2>${esc(t.ev)}</h2><ul>${fl}</ul>`:""}
+  ${r.verdict!=="ok"?`<div class="share"><button id="sh" type="button">${esc(t.share)}</button><div id="shb"></div></div>`:""}</div>`;
+  const sh=$("sh");if(sh)sh.onclick=()=>{const d=r.url.replace(/^http/i,"hxxp").replace(/\./g,"[.]");const txt=t.msg(vn,d);$("shb").innerHTML=`<textarea readonly id="ta">${esc(txt)}</textarea>`;const ta=$("ta");ta.select();try{navigator.clipboard.writeText(txt)}catch(e){}}}
+// ---------- backend: the open-source AI gives the rating + explanation ----------
+let seq=0,health=null;
+async function post(p,b){const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});if(!r.ok)throw new Error(r.status);return r.json()}
+function setBadge(){const t=T[lang],el=$("badge");if(!el)return;el.innerHTML=health===null?"":health.ai?t.bon(esc(health.model),esc(health.license)):esc(t.boff)}
+async function loadHealth(){try{health=await (await fetch("/api/health")).json()}catch(e){health={ai:false}}setBadge()}
+async function remote(r,id){
+  try{const a=await post("/api/analyze",{reg:r.isIP?"":r.reg,url:r.url,deep:$("deep").checked,rest:(r.rest||"").slice(0,1500),rules_score:r.base,flags:engFlags(r),lang,prior:r.enrDone?r.enr:null});
+    if(id!==seq)return;
+    if(!r.enrDone){r.enr=a.flags||[];r.hops=a.hops||[];r.enrDone=true}
+    r.ai=a.available?{state:"done",model:a.model,score:a.score,explanation:a.explanation,tactics:a.tactics||[],guarded:!!a.guarded}:{state:"off"};
+  }catch(e){if(id!==seq)return;r.ai={state:"off"}}
+  render(r)}
+function rerun(r){seq++;r.ai=null;render(r);remote(r,seq)}
+function run(){const v=$("u").value;if(!v.trim())return;const r=analyze(v);seq++;
+  if(!r){last=null;$("out").innerHTML=`<p class="err">${esc(T[lang].bad_url)}</p>`;return}
+  r.base=r.score;r.enr=[];r.hops=[];r.ai=null;r.enrDone=false;last=r;render(r);remote(r,seq)}
+$("go").onclick=run;$("u").addEventListener("keydown",e=>{if(e.key==="Enter")run()});
+document.querySelectorAll(".langs button").forEach(b=>b.onclick=()=>setLang(b.dataset.l));
+setLang("en");loadHealth();
+</script>
+</body>
+</html>
