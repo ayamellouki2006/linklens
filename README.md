@@ -1,5 +1,9 @@
 # LinkLens: read the link before you click it
 
+team members : Aya Mellouki
+               Saif-Eddine Mesfioui
+               El Houcine Kharbouch
+
 Paste a link (or a whole SMS/email) and get a red / amber / green verdict, the real domain highlighted,
 every warning sign with its points, and a plain-language explanation in **English, French or Arabic**.
 Everything runs on your own computer. Nothing is sent to any cloud AI.
